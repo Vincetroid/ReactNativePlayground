@@ -14,6 +14,7 @@ import Ejercicio11 from '@/components/ejercicios/Ejercicio11';
 import Ejercicio12 from '@/components/ejercicios/Ejercicio12';
 import Ejercicio13 from '@/components/ejercicios/Ejercicio13';
 import Ejercicio14 from '@/components/ejercicios/Ejercicio14';
+import Ejercicio15 from '@/components/ejercicios/Ejercicio15';
 
 const ejercicioMap: Record<string, React.ComponentType> = {
   '1': Ejercicio1,
@@ -30,6 +31,7 @@ const ejercicioMap: Record<string, React.ComponentType> = {
   '12': Ejercicio12,
   '13': Ejercicio13,
   '14': Ejercicio14,
+  '15': Ejercicio15,
 };
 
 export default function EjercicioScreen() {

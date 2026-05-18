@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 {
   /* {
@@ -136,6 +142,16 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
   } */
 }
 
+type FoodItem = {
+  id: number;
+  name: string;
+  price: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  date_consumed: string;
+};
+
 type FoodListItemProps = {
   foodName: string;
   price: number;
@@ -152,8 +168,8 @@ const FoodListItem = ({ foodName, price }: FoodListItemProps) => {
 };
 
 export default function Ejercicio14() {
-  const [food, setFood] = useState([]);
-  const [filteredFood, setFilteredFood] = useState([]);
+  const [food, setFood] = useState<FoodItem[]>([]);
+  const [filteredFood, setFilteredFood] = useState<FoodItem[]>([]);
   // const [filteredFood, setFilteredFoodByRangeDates] = useState(undefined);
   const [
     filteredFoodMealHighestProteinUser10,
@@ -167,55 +183,84 @@ export default function Ejercicio14() {
   //   filteredFoodMealHighestProteinUser10,
   //   setFilteredFoodMealHighestProteinUser10,
   // ] = useState(0);
+  const [totalFat, setTotalFat] = useState(0);
+  const [minProtein, setMinProtein] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const init = async () => {
+    setLoading(true);
     const dataRaw = await fetch("https://topt.al/r6cvQM");
     const data = await dataRaw.json();
-    console.log("data2: ", data);
+    // console.log("data2: ", data);
     setFood(data);
 
-    const dataFiltered = food.filter((item) => item.price > 49.9);
-    console.log("dataFiltered2; ", dataFiltered);
+    const dataFiltered = data.filter((item) => item.price > 49.9);
+    // console.log("dataFiltered2; ", dataFiltered);
     setFilteredFood(dataFiltered);
+    setLoading(false);
 
     ////
 
-    // const startDate = "2022-06-15";
-    // const endDate = "2022-11-04";
+    const startDate = "2022-06-15";
+    const endDate = "2022-11-04";
 
-    // const filteredDates = data.filter((item) => {
-    //   return item.date >= startDate && item.date <= endDate;
-    // });
+    const filteredDates = data.filter((item) => {
+      return item.date_consumed >= startDate && item.date_consumed <= endDate;
+    });
 
-    // console.log("filteredDates: ", filteredDates);
+    console.log("filteredDates: ", filteredDates);
 
-    // const dataFilteredMealHighestProteinUser10 = food.reduce(
-    //   (accum, currentValue) => accum + currentValue.protein,
-    //   0,
-    // );
-    // console.log(
-    //   "dataFilteredMealHighestProteinUser10; ",
-    //   dataFilteredMealHighestProteinUser10,
-    // );
+    const dataFilteredMealHighestProteinUser10 = filteredDates.reduce(
+      (accum, currentValue) => accum + currentValue.protein,
+      0,
+    );
+    console.log(
+      "dataFilteredMealHighestProteinUser10; ",
+      dataFilteredMealHighestProteinUser10,
+    );
 
-    // setFilteredFoodMealHighestProteinUser10(
-    //   dataFilteredMealHighestProteinUser10,
-    // );
+    setFilteredFoodMealHighestProteinUser10(
+      dataFilteredMealHighestProteinUser10,
+    );
 
-    // ////
+    ////
 
-    // const filteredFoodMealHighestCarbUser10 = food.reduce(
-    //   (accum, currentValue) => accum + currentValue.carbs,
-    //   0,
-    // );
-    // console.log(
-    //   "filteredFoodMealHighestCarbUser10; ",
-    //   filteredFoodMealHighestCarbUser10,
-    // );
+    const filteredFoodMealHighestCarbUser10 = filteredDates.reduce(
+      (accum, currentValue) => accum + currentValue.carbs,
+      0,
+    );
+    console.log(
+      "filteredFoodMealHighestCarbUser10; ",
+      filteredFoodMealHighestCarbUser10,
+    );
 
-    // setFilteredFoodMealHighestCarbUser10(filteredFoodMealHighestCarbUser10);
+    setFilteredFoodMealHighestCarbUser10(filteredFoodMealHighestCarbUser10);
 
     /////
+
+    const totalFatInRange = filteredDates.reduce(
+      (accum, currentValue) => accum + currentValue.fat,
+      0,
+    );
+    setTotalFat(totalFatInRange);
+
+    /////
+
+    const minProteinStartDate = "2022-05-02";
+    const minProteinEndDate = "2022-07-07";
+
+    const filteredForMinProtein = data.filter((item) => {
+      return (
+        item.date_consumed >= minProteinStartDate &&
+        item.date_consumed <= minProteinEndDate
+      );
+    });
+
+    const minProteinValue = filteredForMinProtein.reduce(
+      (min, currentValue) => Math.min(min, currentValue.protein),
+      Infinity,
+    );
+    setMinProtein(minProteinValue === Infinity ? null : minProteinValue);
   };
 
   useEffect(() => {
@@ -228,23 +273,39 @@ export default function Ejercicio14() {
       <Text style={styles.subtitle}>
         https://git.toptal.com/screeners/calories-json/-/raw/main/calories.json
       </Text>
-      <FlatList
-        // data={food}
-        data={filteredFood}
-        renderItem={({ item }) => (
-          <FoodListItem foodName={item.name} price={item.price} key={item.id} />
-        )}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#111" style={styles.loader} />
+      ) : (
+        <FlatList
+          // data={food}
+          data={filteredFood}
+          renderItem={({ item }) => (
+            <FoodListItem
+              foodName={item.name}
+              price={item.price}
+              key={item.id}
+            />
+          )}
+        />
+      )}
       <Text style={styles.subtitle}>User 10 details:</Text>
-      {/* <Text style={styles.subtitle}>
-        Meal with highest total protein:{" "}
+      <Text style={styles.subtitle}>
+        Total protein (2022-06-15 / 2022-11-04):{" "}
         {filteredFoodMealHighestProteinUser10.toFixed(2)}
       </Text>
       <Text style={styles.subtitle}>
-        Meal with highest total carbs:{" "}
+        Total carbs (2022-06-15 / 2022-11-04):{" "}
         {filteredFoodMealHighestCarbUser10.toFixed(2)}
-      </Text> */}
-      <Text style={styles.subtitle}>Meal with highest total fat:</Text>
+      </Text>
+      <Text style={styles.subtitle}>
+        Meal with highest total fat: {totalFat.toFixed(2)}
+      </Text>
+      <View>
+        <Text style={styles.subtitle}>
+          Min protein (2022-05-02 / 2022-07-07):{" "}
+          {minProtein !== null ? minProtein.toFixed(2) : "N/A"}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -267,5 +328,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
     textAlign: "center",
+  },
+  loader: {
+    marginTop: 32,
   },
 });
