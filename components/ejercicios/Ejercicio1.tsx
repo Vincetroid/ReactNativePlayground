@@ -11,7 +11,7 @@ interface ChipListProps {
 }
 
 const chips = [
-  { label: "Chip 1" },
+  { label: "Chip U" },
   { label: "Chip 2 with some text" },
   { label: "Chip 3 with even more text" },
   { label: "Chip 4 with ultra even more text" },

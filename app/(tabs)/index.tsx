@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 
-const exercises = Array.from({ length: 10 }, (_, i) => ({
+const exercises = Array.from({ length: 14 }, (_, i) => ({
   id: i + 1,
   label: `Ejercicio ${i + 1}`,
 }));
