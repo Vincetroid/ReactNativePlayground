@@ -1,10 +1,26 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 
-const exercises = Array.from({ length: 14 }, (_, i) => ({
-  id: i + 1,
-  label: `Ejercicio ${i + 1}`,
-}));
+const exercises = [
+  { id: 1, label: 'ChipList con límite de chips · ChipList with chip & text limit' },
+  { id: 2, label: 'Buscador con botón limpiar · Search input with clear button' },
+  { id: 3, label: 'Listado de productos con búsqueda · Product list with search' },
+  { id: 4, label: 'Teoría front React Native · React Native frontend theory' },
+  { id: 5, label: 'Orden de ejecución async · Async execution order demo' },
+  { id: 6, label: 'Accordion expandible · Expandable accordion' },
+  { id: 7, label: 'Búsqueda con debounce · Debounced search' },
+  { id: 8, label: 'Persistencia offline · Offline persistence' },
+  { id: 9, label: 'Fetch con Apollo · Apollo data fetching' },
+  { id: 10, label: 'Timer interactivo · Interactive timer' },
+  { id: 11, label: 'Diario de presión arterial · Blood pressure diary' },
+  { id: 12, label: 'Notas con edición y eliminación · Notes with edit & delete' },
+  { id: 13, label: 'Debounce vs Throttle en buscador · Debounce vs Throttle search' },
+  { id: 14, label: 'Lista de comidas con calorías · Food list with calories' },
+  { id: 15, label: 'Tema claro/oscuro con Context · Light/dark theme with Context API' },
+  { id: 16, label: 'Estadísticas de datos mock · Mock data statistics' },
+  { id: 17, label: 'Búsqueda con debounce y estadísticas · Debounced search with stats' },
+  { id: 18, label: 'Búsqueda y estadísticas · Search and statistics' },
+];
 
 export default function HomeScreen() {
   const router = useRouter();

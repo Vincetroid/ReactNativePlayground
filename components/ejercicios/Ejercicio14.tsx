@@ -211,7 +211,7 @@ export default function Ejercicio14() {
     console.log("filteredDates: ", filteredDates);
 
     const dataFilteredMealHighestProteinUser10 = filteredDates.reduce(
-      (accum, currentValue) => accum + currentValue.protein,
+      (accum, currentValue: FoodItem) => accum + currentValue.protein,
       0,
     );
     console.log(
@@ -226,7 +226,7 @@ export default function Ejercicio14() {
     ////
 
     const filteredFoodMealHighestCarbUser10 = filteredDates.reduce(
-      (accum, currentValue) => accum + currentValue.carbs,
+      (accum, currentValue: FoodItem) => accum + currentValue.carbs,
       0,
     );
     console.log(
@@ -239,7 +239,7 @@ export default function Ejercicio14() {
     /////
 
     const totalFatInRange = filteredDates.reduce(
-      (accum, currentValue) => accum + currentValue.fat,
+      (accum: number, currentValue: FoodItem) => accum + currentValue.fat,
       0,
     );
     setTotalFat(totalFatInRange);
