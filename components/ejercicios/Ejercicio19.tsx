@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,36 +9,125 @@ import {
 } from "react-native";
 
 // TODO: definir el tipo del item
+type FoodItem = {
+  id: number;
+  name: string;
+  price: number;
+  protein: number;
+  carbs: number;
+  date_consumed: string;
+};
+
+// TODO: implementar useDebounce
+const useDebounce = (value: any, delay: number) => {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debounced;
+};
 
 // TODO: definir constantes de rango de fechas
+const startDate = "2022-06-15";
+const endDate = "2022-11-04";
 
 // TODO: definir array de configuración de macros
+const MACRONUTRIENTS = [
+  { key: "protein", label: "Protein", color: "#F00", bg: "#FFF" },
+  { key: "carbs", label: "Carbs", color: "#0F0", bg: "#FF3000" },
+  { key: "fat", label: "Fat", color: "#00F, bg: #F1F1F1" },
+] as const;
 
 export default function Ejercicio19() {
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any[]>([]);
+  const [food, setFood] = useState([]);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
 
-  // TODO: implementar useDebounce
-
-  // TODO: useRef para AbortController
   // TODO: useRef para el TextInput
+  const searchRef = useRef(null);
 
-  // TODO: implementar fetch con AbortController
-  const init = async () => {};
+  // TODO: implementar fetch
+  const init = async () => {
+    try {
+      const dataRaw = await fetch("https://topt.al/r6cvQM");
+      const data = await dataRaw.json();
+      setFood(data);
+    } catch (e) {
+      setError("There was an error pulling the data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // TODO: useEffect para llamar init y cleanup
-  useEffect(() => {}, []);
+  useEffect(() => {
+    init();
+  }, []);
 
   // TODO: useEffect para foco automático al cargar
+  useEffect(() => {
+    if (!loading && food.length > 0) {
+      searchRef.current.focus();
+    }
+  }, [loading, food.length]);
 
-  // TODO: useMemo — filtrar items por criterio
-  const filteredData: any[] = [];
+  // TODO: useMemo — expensiveFood y filtrar items por criterio
+  const expensiveFood = useMemo(
+    () => food.filter((item) => item.price > 49.9),
+    [food],
+  );
+
+  const filteredFood = useMemo(() => {
+    const term = debouncedQuery.trim().toLowerCase();
+    if (!term) {
+      return expensiveFood;
+    }
+    return expensiveFood.filter((item) =>
+      item.name.toLowerCase().includes(term),
+    );
+  }, [expensiveFood, debouncedQuery]);
 
   // TODO: useMemo — calcular estadísticas con reduce
+  const stats = useMemo(
+    () =>
+      food
+        .filter(
+          (item) =>
+            item.date_consumed >= startDate && item.date_consumed <= endDate,
+        )
+        .reduce(
+          (acc, item) => ({
+            totalProtein: acc.totalProtein + item.protein,
+            totalCarbs: acc.totalCarbs + item.carbs,
+            totalFat: acc.totalFat + item.fat,
+            minProtein: Math.min(acc.minProtein, item.protein),
+            minCarbs: Math.min(acc.minCarbs, item.carbs),
+            minFat: Math.min(acc.minFat, item.fat),
+          }),
+          {
+            totalProtein: 0,
+            totalCarbs: 0,
+            totalFat: 0,
+            minProtein: Infinity,
+            minCarbs: Infinity,
+            minFat: Infinity,
+          },
+        ),
+    [food],
+  );
 
   // TODO: construir objeto de valores para el render
+  const macroValues = {
+    protein: { total: stats.totalProtein, min: stats.minProtein },
+    carbs: { total: stats.totalCarbs, min: stats.minCarbs },
+    fat: { total: stats.totalFat, min: stats.minFat },
+  };
 
   return (
     <View style={styles.screen}>
@@ -65,12 +154,12 @@ export default function Ejercicio19() {
               <Text style={styles.sectionTitle}>Resultados</Text>
               <View style={styles.badge}>
                 {/* TODO: mostrar conteo filtrado / total */}
-                <Text style={styles.badgeText}>{filteredData.length}</Text>
+                <Text style={styles.badgeText}>{filteredFood.length}</Text>
               </View>
             </View>
             <View style={styles.searchBox}>
               <TextInput
-                // TODO: ref={searchRef}
+                ref={searchRef}
                 style={styles.searchInput}
                 placeholder="Buscar…"
                 placeholderTextColor="#AAA"
@@ -81,7 +170,7 @@ export default function Ejercicio19() {
               />
             </View>
             <FlatList
-              data={filteredData}
+              data={filteredFood}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
                 <View style={styles.foodCard}>
@@ -94,7 +183,7 @@ export default function Ejercicio19() {
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyText}>
                     {query
-                      ? "Sin resultados para \"" + query + "\""
+                      ? 'Sin resultados para "' + query + '"'
                       : "Sin datos"}
                   </Text>
                 </View>
@@ -116,6 +205,32 @@ export default function Ejercicio19() {
               <Text style={styles.dateText}>fin</Text>
             </View>
             {/* TODO: iterar MACROS y renderizar filas de stats */}
+            {MACRONUTRIENTS.map(({ key, label, color, bg }) => {
+              const { total, min } = macroValues[key];
+              return (
+                <View
+                  key={key}
+                  style={[styles.macroRow, { backgroundColor: bg }]}
+                >
+                  <Text style={[styles.macroLabel, { color }]}>{label}</Text>
+                  <View style={styles.macroValues}>
+                    <View style={styles.macroStat}>
+                      <Text style={styles.macroStatLabel}>Total</Text>
+                      <Text style={[styles.macroStatValue, { color }]}>
+                        {total.toFixed(1)}g
+                      </Text>
+                    </View>
+                    <View style={styles.macroDivider} />
+                    <View style={styles.macroStat}>
+                      <Text style={styles.macroStatLabel}>Mín</Text>
+                      <Text style={[styles.macroStatValue, { color }]}>
+                        {min === Infinity ? "N/A" : `${min.toFixed(1)}g`}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
           </View>
         </View>
       )}

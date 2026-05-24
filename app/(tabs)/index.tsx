@@ -20,6 +20,8 @@ const exercises = [
   { id: 16, label: 'Estadísticas de datos mock · Mock data statistics' },
   { id: 17, label: 'Búsqueda con debounce y estadísticas · Debounced search with stats' },
   { id: 18, label: 'Búsqueda y estadísticas · Search and statistics' },
+  { id: 19, label: 'Búsqueda y estadísticas con loading · Search & statistics with loading' },
+  { id: 20, label: 'Catálogo con búsqueda y ordenamiento · Catalog with search & sort' },
 ];
 
 export default function HomeScreen() {
@@ -35,7 +37,7 @@ export default function HomeScreen() {
           onPress={() => router.push({ pathname: '/ejercicio/[id]', params: { id } })}
           activeOpacity={0.7}
         >
-          <Text style={styles.buttonText}>{label}</Text>
+          <Text style={styles.buttonText}>{id}. {label}</Text>
         </TouchableOpacity>
       ))}
     </ScrollView>

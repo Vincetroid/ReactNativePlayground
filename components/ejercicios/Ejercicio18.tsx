@@ -32,8 +32,8 @@ const END_DATE = "2022-11-04";
 
 const MACROS = [
   { key: "protein", label: "Proteína", color: "#4CAF50", bg: "#E8F5E9" },
-  { key: "carbs",   label: "Carbos",   color: "#FF9800", bg: "#FFF3E0" },
-  { key: "fat",     label: "Grasa",    color: "#9C27B0", bg: "#F3E5F5" },
+  { key: "carbs", label: "Carbos", color: "#FF9800", bg: "#FFF3E0" },
+  { key: "fat", label: "Grasa", color: "#9C27B0", bg: "#F3E5F5" },
 ] as const;
 
 export default function Ejercicio18() {
@@ -120,8 +120,8 @@ export default function Ejercicio18() {
 
   const macroValues = {
     protein: { total: stats.totalProtein, min: stats.minProtein },
-    carbs:   { total: stats.totalCarbs,   min: stats.minCarbs   },
-    fat:     { total: stats.totalFat,     min: stats.minFat     },
+    carbs: { total: stats.totalCarbs, min: stats.minCarbs },
+    fat: { total: stats.totalFat, min: stats.minFat },
   };
 
   return (
@@ -176,7 +176,9 @@ export default function Ejercicio18() {
                     {item.name}
                   </Text>
                   <View style={styles.priceTag}>
-                    <Text style={styles.priceText}>${item.price.toFixed(2)}</Text>
+                    <Text style={styles.priceText}>
+                      ${item.price.toFixed(2)}
+                    </Text>
                   </View>
                 </View>
               )}
@@ -184,7 +186,7 @@ export default function Ejercicio18() {
               ListEmptyComponent={
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyText}>
-                    {"Sin resultados para \"" + debouncedQuery + "\""}
+                    {'Sin resultados para "' + debouncedQuery + '"'}
                   </Text>
                 </View>
               }
@@ -206,7 +208,10 @@ export default function Ejercicio18() {
             {MACROS.map(({ key, label, color, bg }) => {
               const { total, min } = macroValues[key];
               return (
-                <View key={key} style={[styles.macroRow, { backgroundColor: bg }]}>
+                <View
+                  key={key}
+                  style={[styles.macroRow, { backgroundColor: bg }]}
+                >
                   <Text style={[styles.macroLabel, { color }]}>{label}</Text>
                   <View style={styles.macroValues}>
                     <View style={styles.macroStat}>
