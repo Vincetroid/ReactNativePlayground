@@ -4,5 +4,5 @@
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
   },
-  "workbench.colorTheme": "Default Dark Modern"
+  "workbench.colorTheme": "Dark Modern"
 }

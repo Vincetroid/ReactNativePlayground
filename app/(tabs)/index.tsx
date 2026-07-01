@@ -22,6 +22,8 @@ const exercises = [
   { id: 18, label: 'Búsqueda y estadísticas · Search and statistics' },
   { id: 19, label: 'Búsqueda y estadísticas con loading · Search & statistics with loading' },
   { id: 20, label: 'Catálogo con búsqueda y ordenamiento · Catalog with search & sort' },
+  { id: 21, label: 'Carrito de compras · Shopping cart with useReducer' },
+  { id: 22, label: 'Ejercicio 22' },
 ];
 
 export default function HomeScreen() {

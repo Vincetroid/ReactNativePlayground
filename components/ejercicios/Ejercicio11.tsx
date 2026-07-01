@@ -153,3 +153,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#111",
     marginBottom: 4,
+  },
+});
