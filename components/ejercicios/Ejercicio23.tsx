@@ -5,8 +5,30 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
+
+// Debounce genérico y reutilizable: evita recomputar el filtro en cada
+// pulsación. En una entrevista, extraerlo a un hook demuestra que separas
+// lógica reutilizable de la UI.
+function useDebounce<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+
+  return debounced;
+}
+
+// Normaliza para búsqueda insensible a mayúsculas y acentos ("Café" ~ "cafe").
+const normalize = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
 
 type Product = {
   id: number;
@@ -26,6 +48,8 @@ export default function Ejercicio23() {
   const [products, setProducts] = useState<Product[]>([]);
   const [sortField, setSortField] = useState<SortField>("price");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
 
   const SORT_OPTIONS: { label: string; field: SortField }[] = [
     { label: "Price", field: "price" },
@@ -71,13 +95,22 @@ export default function Ejercicio23() {
     }
   };
 
-  const sortedProducts = useMemo(() => {
-    const copy = [...products];
-    return copy.sort((a, b) => {
+  const visibleProducts = useMemo(() => {
+    const q = normalize(debouncedQuery.trim());
+
+    const filtered = q
+      ? products.filter((p) => {
+          const haystack = normalize(`${p.title} ${p.brand ?? ""}`);
+          return haystack.includes(q);
+        })
+      : products;
+
+    // No mutar el array original: sort() ordena in-place.
+    return [...filtered].sort((a, b) => {
       const diff = a[sortField] - b[sortField];
       return sortOrder === "asc" ? diff : -diff;
     });
-  }, [products, sortField, sortOrder]);
+  }, [products, debouncedQuery, sortField, sortOrder]);
 
   return (
     <View style={styles.screen}>
@@ -97,6 +130,28 @@ export default function Ejercicio23() {
         </View>
       ) : (
         <View style={styles.content}>
+          <View style={styles.searchRow}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por nombre o marca…"
+              placeholderTextColor="#9AA0B4"
+              value={query}
+              onChangeText={setQuery}
+              autoCorrect={false}
+              autoCapitalize="none"
+              clearButtonMode="while-editing"
+              returnKeyType="search"
+            />
+            {!!query && (
+              <Pressable
+                onPress={() => setQuery("")}
+                style={styles.clearBtn}
+                hitSlop={8}
+              >
+                <Text style={styles.clearBtnText}>✕</Text>
+              </Pressable>
+            )}
+          </View>
           <View style={styles.sortRow}>
             <Text style={styles.sortLabel}>Ordenar por:</Text>
             {SORT_OPTIONS.map(({ label, field }) => {
@@ -121,10 +176,22 @@ export default function Ejercicio23() {
               );
             })}
           </View>
+          <Text style={styles.resultCount}>
+            {visibleProducts.length} resultado
+            {visibleProducts.length === 1 ? "" : "s"}
+          </Text>
           <FlatList
-            data={sortedProducts}
+            data={visibleProducts}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.listContent}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyText}>
+                  Sin resultados para “{debouncedQuery.trim()}”
+                </Text>
+              </View>
+            }
             renderItem={({ item }) => (
               <View style={styles.card}>
                 <View style={styles.cardInfo}>
@@ -156,6 +223,48 @@ export default function Ejercicio23() {
 }
 
 const styles = StyleSheet.create({
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: "#1A1A2E",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  clearBtn: {
+    position: "absolute",
+    right: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#C5CAE9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clearBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  resultCount: {
+    fontSize: 12,
+    color: "#999",
+  },
+  emptyBox: {
+    paddingVertical: 48,
+    alignItems: "center",
+  },
+  emptyText: {
+    color: "#888",
+    fontSize: 14,
+  },
   sortRow: {
     flexDirection: "row",
     alignItems: "center",
