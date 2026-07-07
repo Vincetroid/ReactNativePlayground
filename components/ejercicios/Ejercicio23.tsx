@@ -147,9 +147,19 @@ export default function Ejercicio23() {
         acc.totalPrice += p.price;
         acc.totalRating += p.rating;
         acc.totalStock += p.stock;
+        // Semilla Infinity/-Infinity: Math.min/max convergen al extremo real
+        // en la primera iteración sin necesitar un caso especial para i === 0.
+        acc.minPrice = Math.min(acc.minPrice, p.price);
+        acc.maxPrice = Math.max(acc.maxPrice, p.price);
         return acc;
       },
-      { totalPrice: 0, totalRating: 0, totalStock: 0 },
+      {
+        totalPrice: 0,
+        totalRating: 0,
+        totalStock: 0,
+        minPrice: Infinity,
+        maxPrice: -Infinity,
+      },
     );
 
     const count = visibleProducts.length;
@@ -159,6 +169,10 @@ export default function Ejercicio23() {
       avgPrice: count ? totals.totalPrice / count : 0,
       avgRating: count ? totals.totalRating / count : 0,
       totalStock: totals.totalStock,
+      // Sin elementos, min/max quedan en ±Infinity: los normalizo a 0 para
+      // no imprimir "Infinity" en la UI cuando la búsqueda no tiene resultados.
+      minPrice: count ? totals.minPrice : 0,
+      maxPrice: count ? totals.maxPrice : 0,
     };
   }, [visibleProducts]);
 
@@ -166,6 +180,10 @@ export default function Ejercicio23() {
     { label: "Productos", value: String(stats.count) },
     { label: "Precio medio", value: `$${stats.avgPrice.toFixed(2)}` },
     { label: "Rating medio", value: `★ ${stats.avgRating.toFixed(2)}` },
+    {
+      label: "Rango precio",
+      value: `$${stats.minPrice.toFixed(0)}–$${stats.maxPrice.toFixed(0)}`,
+    },
     { label: "Stock total", value: String(stats.totalStock) },
   ];
 
