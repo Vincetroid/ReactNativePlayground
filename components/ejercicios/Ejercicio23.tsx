@@ -49,11 +49,74 @@ function useDebounce<T>(value: T, delay = 300): T {
 }
 
 // Normaliza para búsqueda insensible a mayúsculas y acentos ("Café" ~ "cafe").
+// const normalize = (text: string) =>
+//   text
+//     .toLowerCase()
+//     .normalize("NFD")
+//     .replace(/\p{Diacritic}/gu, "");
+
+// const normalize = (text: string) =>
+//   text
+//     .toLowerCase()
+//     .normalize("NFD")
+//     .replace(/\p{Diacritic}/gu, "");
+
 const normalize = (text: string) =>
   text
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "");
+
+// ── ChipList: reto clásico de entrevista ──────────────────────────────
+// Puntos a verbalizar:
+// - Edge cases primero con guard clauses: sin chips o array vacío → null,
+//   sin anidar el happy path en condicionales.
+// - `undefined` ≠ `0`: maxChips undefined significa "sin límite";
+//   maxChips 0 es un límite explícito (no se muestra ningún chip, solo el label).
+// - slice() no muta el array original (a diferencia de splice).
+// - El label "N more items" es condicional: nunca renderizar "0 more items"
+//   ni el contenedor vacío.
+type Chip = { label: string };
+
+type ChipListProps = {
+  chips?: Chip[];
+  maxChips?: number;
+  maxTextLength?: number;
+};
+
+// Función pura extraída: fácil de explicar y testear aislada.
+function truncateLabel(label: string, maxTextLength?: number): string {
+  if (maxTextLength === undefined) return label;
+  if (maxTextLength < 1) return "…";
+  return label.length > maxTextLength
+    ? `${label.slice(0, maxTextLength)}…`
+    : label;
+}
+
+function ChipList({ chips, maxChips, maxTextLength }: ChipListProps) {
+  if (!chips || chips.length === 0) return null;
+
+  const visibleCount =
+    maxChips === undefined ? chips.length : Math.max(0, maxChips);
+  const exceeding = chips.length - visibleCount;
+
+  return (
+    <View style={styles.chipRow}>
+      {chips.slice(0, visibleCount).map((chip, index) => (
+        <View key={`${chip.label}-${index}`} testID={`chip-${index}`} style={styles.chip}>
+          <Text style={styles.chipText}>
+            {truncateLabel(chip.label, maxTextLength)}
+          </Text>
+        </View>
+      ))}
+      {exceeding > 0 && (
+        <Text testID="exceeding-text" style={styles.exceedingText}>
+          {exceeding} more items
+        </Text>
+      )}
+    </View>
+  );
+}
 
 type Product = {
   id: number;
@@ -75,6 +138,10 @@ export default function Ejercicio23() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
+  // Controles de demo del ChipList: permiten bajar a 0 para ver los edge
+  // cases (maxChips 0 → solo el label; maxTextLength 0 → solo "…").
+  const [maxChips, setMaxChips] = useState(4);
+  const [maxTextLength, setMaxTextLength] = useState(8);
 
   const SORT_OPTIONS: { label: string; field: SortField }[] = [
     { label: "Price", field: "price" },
@@ -136,6 +203,15 @@ export default function Ejercicio23() {
       return sortOrder === "asc" ? diff : -diff;
     });
   }, [products, debouncedQuery, sortField, sortOrder]);
+
+  // Marcas únicas de los productos visibles: los chips reaccionan a la
+  // búsqueda en vivo. Set deduplica en O(n) preservando orden de inserción.
+  const brandChips = useMemo(() => {
+    const brands = visibleProducts
+      .map((p) => p.brand)
+      .filter((b): b is string => !!b);
+    return [...new Set(brands)].map((label) => ({ label }));
+  }, [visibleProducts]);
 
   // Métricas derivadas de lo que el usuario ve. Una sola pasada de reduce
   // acumula todos los agregados: O(n) en vez de recorrer la lista una vez
@@ -235,6 +311,46 @@ export default function Ejercicio23() {
               </View>
             ))}
           </View>
+          <View style={styles.chipControlsRow}>
+            {(
+              [
+                {
+                  label: "Max chips",
+                  value: maxChips,
+                  set: setMaxChips,
+                },
+                {
+                  label: "Max texto",
+                  value: maxTextLength,
+                  set: setMaxTextLength,
+                },
+              ] as const
+            ).map(({ label, value, set }) => (
+              <View key={label} style={styles.stepper}>
+                <Text style={styles.sortLabel}>{label}:</Text>
+                <Pressable
+                  onPress={() => set((v) => Math.max(0, v - 1))}
+                  style={styles.stepperBtn}
+                  hitSlop={6}
+                >
+                  <Text style={styles.stepperBtnText}>−</Text>
+                </Pressable>
+                <Text style={styles.stepperValue}>{value}</Text>
+                <Pressable
+                  onPress={() => set((v) => v + 1)}
+                  style={styles.stepperBtn}
+                  hitSlop={6}
+                >
+                  <Text style={styles.stepperBtnText}>+</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+          <ChipList
+            chips={brandChips}
+            maxChips={maxChips}
+            maxTextLength={maxTextLength}
+          />
           <View style={styles.sortRow}>
             <Text style={styles.sortLabel}>Ordenar por:</Text>
             {SORT_OPTIONS.map(({ label, field }) => {
@@ -342,15 +458,18 @@ const styles = StyleSheet.create({
   },
   metricsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-around",
     backgroundColor: "#fff",
     borderRadius: 12,
     paddingVertical: 12,
+    // rowGap: 12,
     borderWidth: 1,
     borderColor: "#E0E0E0",
   },
   metricCell: {
     alignItems: "center",
+    // minWidth: 90,
   },
   metricValue: {
     fontSize: 15,
@@ -369,6 +488,64 @@ const styles = StyleSheet.create({
   emptyText: {
     color: "#888",
     fontSize: 14,
+  },
+  chipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "#C5CAE9",
+    backgroundColor: "#E8EAF6",
+  },
+  chipText: {
+    fontSize: 12,
+    color: "#3F51B5",
+    fontWeight: "600",
+  },
+  exceedingText: {
+    fontSize: 12,
+    color: "#999",
+    fontStyle: "italic",
+  },
+  chipControlsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  stepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  stepperBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepperBtnText: {
+    fontSize: 14,
+    color: "#5C6BC0",
+    fontWeight: "700",
+    lineHeight: 16,
+  },
+  stepperValue: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1A1A2E",
+    minWidth: 18,
+    textAlign: "center",
   },
   sortRow: {
     flexDirection: "row",
