@@ -20,18 +20,18 @@ type Product = {
 type SortField = "price" | "rating" | "stock";
 type SortOrder = "asc" | "desc";
 
-const SORT_OPTIONS: { label: string; field: SortField }[] = [
-  { label: "Precio", field: "price" },
-  { label: "Rating", field: "rating" },
-  { label: "Stock", field: "stock" },
-];
-
-export default function Ejercicio22() {
+export default function Ejercicio23() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [sortField, setSortField] = useState<SortField>("price");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+
+  const SORT_OPTIONS: { label: string; field: SortField }[] = [
+    { label: "Price", field: "price" },
+    { label: "Rating", field: "rating" },
+    { label: "Stock", field: "stock" },
+  ];
 
   useEffect(() => {
     const controller = new AbortController();
@@ -59,42 +59,31 @@ export default function Ejercicio22() {
   }, []);
 
   const handleSort = (field: SortField) => {
+    // 2 scenarios
+    // When the field is the same as the previous one. You only change the asc or desc order
     if (field === sortField) {
-      // mismo campo → alternar dirección
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      // campo distinto → cambiar campo y resetear a ascendente
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
       setSortField(field);
-      setSortOrder("asc");
+    }
+    // When the field is different as the previous one. You change the asc or desc order and you change field
+    else {
+      setSortField(field);
     }
   };
 
   const sortedProducts = useMemo(() => {
     const copy = [...products];
-    copy.sort((a, b) => {
-      console.log("a y b: ", a, b);
-      console.log("a[sortField] - b[sortField]");
-      console.log(a[sortField], b[sortField]);
+    return copy.sort((a, b) => {
       const diff = a[sortField] - b[sortField];
       return sortOrder === "asc" ? diff : -diff;
     });
-    return copy;
   }, [products, sortField, sortOrder]);
-
-  // const sortedProducts = useMemo(() => {
-  //   const copy = [...products];
-  //   copy.sort((a, b) => {
-
-  //     const diff = a[sortField] - b[sortField]
-  //     return sortOrder === "asc" ? diff : -diff;
-  //   })
-  // }, [products, sortField, sortOrder])
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.title}>Ejercicio 22</Text>
-        <Text style={styles.subtitle}>Ordenar productos asc / desc</Text>
+        <Text style={styles.title}>Ejercicio 23</Text>
+        <Text style={styles.subtitle}>Descripción del ejercicio</Text>
       </View>
 
       {error ? (
@@ -112,6 +101,7 @@ export default function Ejercicio22() {
             <Text style={styles.sortLabel}>Ordenar por:</Text>
             {SORT_OPTIONS.map(({ label, field }) => {
               const active = field === sortField;
+
               return (
                 <Pressable
                   key={field}
@@ -131,7 +121,6 @@ export default function Ejercicio22() {
               );
             })}
           </View>
-
           <FlatList
             data={sortedProducts}
             keyExtractor={(item) => item.id.toString()}
@@ -167,6 +156,36 @@ export default function Ejercicio22() {
 }
 
 const styles = StyleSheet.create({
+  sortRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  sortLabel: {
+    fontSize: 12,
+    color: "#999",
+  },
+  sortChip: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    backgroundColor: "#fff",
+  },
+  sortChipActive: {
+    backgroundColor: "#5C6BC0",
+    borderColor: "#5C6BC0",
+  },
+  sortChipText: {
+    fontSize: 12,
+    color: "#666",
+  },
+  sortChipTextActive: {
+    color: "#fff",
+    fontWeight: "600",
+  },
   screen: {
     flex: 1,
     backgroundColor: "#F0F2F8",
@@ -216,36 +235,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     gap: 12,
-  },
-  sortRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  sortLabel: {
-    fontSize: 12,
-    color: "#999",
-  },
-  sortChip: {
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#fff",
-  },
-  sortChipActive: {
-    backgroundColor: "#5C6BC0",
-    borderColor: "#5C6BC0",
-  },
-  sortChipText: {
-    fontSize: 12,
-    color: "#666",
-  },
-  sortChipTextActive: {
-    color: "#fff",
-    fontWeight: "600",
   },
   listContent: {
     paddingBottom: 24,

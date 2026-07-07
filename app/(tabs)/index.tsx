@@ -23,7 +23,8 @@ const exercises = [
   { id: 19, label: 'Búsqueda y estadísticas con loading · Search & statistics with loading' },
   { id: 20, label: 'Catálogo con búsqueda y ordenamiento · Catalog with search & sort' },
   { id: 21, label: 'Carrito de compras · Shopping cart with useReducer' },
-  { id: 22, label: 'Ejercicio 22' },
+  { id: 22, label: 'Ordenar productos asc/desc · Sort products asc/desc' },
+  { id: 23, label: 'Lista de productos con fetch · Product list with fetch' },
 ];
 
 export default function HomeScreen() {
