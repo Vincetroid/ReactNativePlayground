@@ -9,6 +9,31 @@ import {
   View,
 } from "react-native";
 
+// Cómo demostrar seniority en la entrevista
+// El código impresiona menos que las decisiones que verbalizas. Prepara estas frases:
+
+// Debounce y por qué 300ms — "Filtrar en cada pulsación desperdicia renders; con debounce solo recomputo cuando el usuario pausa. 300ms es el punto donde se siente instantáneo sin thrashing."
+
+// Cliente vs servidor — esto es lo más importante. Di: "Aquí filtro en cliente porque ya tengo los 100 productos en memoria — es correcto para un dataset acotado. Si fueran 50.000 productos, movería la búsqueda al servidor (/products/search?q=) con debounce + AbortController para cancelar peticiones en vuelo, y paginación." Tu useEffect ya usa AbortController, así que puedes conectar los dos conceptos.
+
+// Normalización — "Los usuarios buscan 'cafe' esperando encontrar 'Café'. La normalización Unicode NFD resuelve acentos sin dependencias."
+
+// Memoización — "El useMemo evita re-filtrar/re-ordenar cuando cambia algo no relacionado, como el estado del teclado."
+
+// Pendiente de agregar
+// ¿Quieres que implemente además la variante server-side (búsqueda contra el endpoint con AbortController y cancelación de race conditions)? Es el diferenciador real entre mid y senior, y te deja mostrar ambos enfoques y explicar el trade-off. ¿La agrego?
+
+// Qué se implementó
+// stats con un solo reduce (Ejercicio23.tsx:130) — acumula precio, rating y stock en una pasada O(n), en vez de recorrer la lista 3 veces con .map().reduce() separados.
+// Depende de visibleProducts, así que las métricas se recalculan con la búsqueda y el filtro en vivo.
+// Guarda contra división por cero (count ? ... : 0) para el caso "sin resultados".
+// Fila de 4 métricas debajo del searchbar con justifyContent: "space-around": Productos · Precio medio · Rating medio · Stock total.
+// Cómo defenderlo en la entrevista
+// Una pasada vs varias — "Podría hacer products.reduce para el precio, otro para rating, etc., pero eso son N recorridos. Un solo reduce con un acumulador de objeto lo resuelve en una pasada."
+// Promedio al final, no incremental — acumulas la suma total y divides una vez; evitas arrastrar error de redondeo por iteración.
+// Métricas sobre datos filtrados — "Las stats reflejan lo que el usuario ve. Si busca 'phone', el precio medio es el de los teléfonos, no del catálogo entero" — esto conecta la lógica de search con la de métricas y demuestra que piensas en producto, no solo en código.
+// Un detalle menor: quedó el resultCount ("N resultados") además de la métrica "Productos", que ahora son redundantes. ¿Quito el resultCount o lo dejo?
+
 // Debounce genérico y reutilizable: evita recomputar el filtro en cada
 // pulsación. En una entrevista, extraerlo a un hook demuestra que separas
 // lógica reutilizable de la UI.
@@ -112,6 +137,38 @@ export default function Ejercicio23() {
     });
   }, [products, debouncedQuery, sortField, sortOrder]);
 
+  // Métricas derivadas de lo que el usuario ve. Una sola pasada de reduce
+  // acumula todos los agregados: O(n) en vez de recorrer la lista una vez
+  // por métrica. El promedio se calcula al final para no arrastrar errores
+  // de redondeo intermedios.
+  const stats = useMemo(() => {
+    const totals = visibleProducts.reduce(
+      (acc, p) => {
+        acc.totalPrice += p.price;
+        acc.totalRating += p.rating;
+        acc.totalStock += p.stock;
+        return acc;
+      },
+      { totalPrice: 0, totalRating: 0, totalStock: 0 },
+    );
+
+    const count = visibleProducts.length;
+
+    return {
+      count,
+      avgPrice: count ? totals.totalPrice / count : 0,
+      avgRating: count ? totals.totalRating / count : 0,
+      totalStock: totals.totalStock,
+    };
+  }, [visibleProducts]);
+
+  const METRICS: { label: string; value: string }[] = [
+    { label: "Productos", value: String(stats.count) },
+    { label: "Precio medio", value: `$${stats.avgPrice.toFixed(2)}` },
+    { label: "Rating medio", value: `★ ${stats.avgRating.toFixed(2)}` },
+    { label: "Stock total", value: String(stats.totalStock) },
+  ];
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -151,6 +208,14 @@ export default function Ejercicio23() {
                 <Text style={styles.clearBtnText}>✕</Text>
               </Pressable>
             )}
+          </View>
+          <View style={styles.metricsRow}>
+            {METRICS.map(({ label, value }) => (
+              <View key={label} style={styles.metricCell}>
+                <Text style={styles.metricValue}>{value}</Text>
+                <Text style={styles.metricLabel}>{label}</Text>
+              </View>
+            ))}
           </View>
           <View style={styles.sortRow}>
             <Text style={styles.sortLabel}>Ordenar por:</Text>
@@ -256,6 +321,28 @@ const styles = StyleSheet.create({
   resultCount: {
     fontSize: 12,
     color: "#999",
+  },
+  metricsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  metricCell: {
+    alignItems: "center",
+  },
+  metricValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#5C6BC0",
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: "#999",
+    marginTop: 2,
   },
   emptyBox: {
     paddingVertical: 48,
