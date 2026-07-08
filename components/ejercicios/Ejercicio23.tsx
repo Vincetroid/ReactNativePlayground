@@ -138,6 +138,8 @@ export default function Ejercicio23() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
+  const [newTitle, setNewTitle] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
   // Controles de demo del ChipList: permiten bajar a 0 para ver los edge
   // cases (maxChips 0 → solo el label; maxTextLength 0 → solo "…").
   const [maxChips, setMaxChips] = useState(4);
@@ -173,6 +175,34 @@ export default function Ejercicio23() {
     fetchProducts();
     return () => controller.abort();
   }, []);
+
+  const handleAddProduct = () => {
+    const title = newTitle.trim();
+    if (!title) {
+      setAddError("El nombre no puede estar vacío");
+      return;
+    }
+    const isDuplicate = products.some(
+      (p) => p.title.toLowerCase() === title.toLowerCase(),
+    );
+    if (isDuplicate) {
+      setAddError(`"${title}" ya existe`);
+      return;
+    }
+
+    // Id local: máximo actual + 1 para no chocar con los ids del endpoint.
+    const nextId = products.reduce((max, p) => Math.max(max, p.id), 0) + 1;
+    setProducts([
+      ...products,
+      { id: nextId, title, price: 0, rating: 0, stock: 0 },
+    ]);
+    setNewTitle("");
+    setAddError(null);
+  };
+
+  const handleDeleteProduct = (id: number) => {
+    setProducts(products.filter((p) => p.id !== id));
+  };
 
   const handleSort = (field: SortField) => {
     // 2 scenarios
@@ -281,6 +311,24 @@ export default function Ejercicio23() {
         </View>
       ) : (
         <View style={styles.content}>
+          <View style={styles.addRow}>
+            <TextInput
+              style={[styles.searchInput, styles.addInput]}
+              placeholder="Nuevo producto…"
+              placeholderTextColor="#9AA0B4"
+              value={newTitle}
+              onChangeText={(text) => {
+                setNewTitle(text);
+                if (addError) setAddError(null);
+              }}
+              onSubmitEditing={handleAddProduct}
+              returnKeyType="done"
+            />
+            <Pressable onPress={handleAddProduct} style={styles.addBtn}>
+              <Text style={styles.addBtnText}>Agregar</Text>
+            </Pressable>
+          </View>
+          {!!addError && <Text style={styles.addErrorText}>{addError}</Text>}
           <View style={styles.searchRow}>
             <TextInput
               style={styles.searchInput}
@@ -377,7 +425,8 @@ export default function Ejercicio23() {
           </View>
           <Text style={styles.resultCount}>
             {visibleProducts.length} resultado
-            {visibleProducts.length === 1 ? "" : "s"}
+            {visibleProducts.length === 1 ? "" : "s"} · toca un producto para
+            eliminarlo
           </Text>
           <FlatList
             data={visibleProducts}
@@ -392,7 +441,10 @@ export default function Ejercicio23() {
               </View>
             }
             renderItem={({ item }) => (
-              <View style={styles.card}>
+              <Pressable
+                onPress={() => handleDeleteProduct(item.id)}
+                style={styles.card}
+              >
                 <View style={styles.cardInfo}>
                   <Text style={styles.cardTitle} numberOfLines={1}>
                     {item.title}
@@ -407,7 +459,7 @@ export default function Ejercicio23() {
                     ★ {item.rating} · stock {item.stock}
                   </Text>
                 </View>
-              </View>
+              </Pressable>
             )}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             removeClippedSubviews
@@ -422,6 +474,31 @@ export default function Ejercicio23() {
 }
 
 const styles = StyleSheet.create({
+  addRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  addInput: {
+    flex: 1,
+  },
+  addBtn: {
+    height: 44,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    backgroundColor: "#5C6BC0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  addErrorText: {
+    color: "#C62828",
+    fontSize: 12,
+  },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",

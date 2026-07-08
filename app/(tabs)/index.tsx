@@ -25,6 +25,7 @@ const exercises = [
   { id: 21, label: 'Carrito de compras · Shopping cart with useReducer' },
   { id: 22, label: 'Ordenar productos asc/desc · Sort products asc/desc' },
   { id: 23, label: 'Lista de productos con fetch · Product list with fetch' },
+  { id: 24, label: 'CRUD de productos con validación · Products add/delete with validation' },
 ];
 
 export default function HomeScreen() {
