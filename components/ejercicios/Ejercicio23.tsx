@@ -93,7 +93,7 @@ function truncateLabel(label: string, maxTextLength?: number): string {
     : label;
 }
 
-function ChipList({ chips, maxChips, maxTextLength }: ChipListProps) {
+const ChipList = ({ chips, maxChips, maxTextLength }: ChipListProps) => {
   if (!chips || chips.length === 0) return null;
 
   const visibleCount =
@@ -116,7 +116,7 @@ function ChipList({ chips, maxChips, maxTextLength }: ChipListProps) {
       )}
     </View>
   );
-}
+};
 
 type Product = {
   id: number;
