@@ -26,6 +26,8 @@ const exercises = [
   { id: 22, label: 'Ordenar productos asc/desc · Sort products asc/desc' },
   { id: 23, label: 'Lista de productos con fetch · Product list with fetch' },
   { id: 24, label: 'CRUD de productos con validación · Products add/delete with validation' },
+  { id: 25, label: 'Práctica del ejercicio 23 · Practice: search, sort, stats & CRUD' },
+  { id: 26, label: 'Práctica del ejercicio 23 con fetch · Practice incl. fetch from scratch' },
 ];
 
 export default function HomeScreen() {

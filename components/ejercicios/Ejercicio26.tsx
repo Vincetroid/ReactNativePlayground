@@ -9,57 +9,30 @@ import {
   View,
 } from "react-native";
 
-// Cómo demostrar seniority en la entrevista
-// El código impresiona menos que las decisiones que verbalizas. Prepara estas frases:
+// Plantilla para practicar el Ejercicio 23 desde cero, incluido el fetch.
+// Solo está montado el esqueleto de UI: loading/error y FlatList.
+//
+// TODO (en orden de dificultad):
+// 0. Fetch: useEffect con AbortController contra
+//    https://dummyjson.com/products?limit=100 (loading, error y cleanup).
+// 1. Ordenamiento: chips Price/Rating/Stock con toggle asc/desc (useMemo, sin mutar el array).
+// 2. Búsqueda: TextInput + debounce de 300ms + normalización de acentos ("Café" ~ "cafe").
+// 3. Métricas: count, precio medio, rating medio, stock total en UN solo reduce.
+// 4. Agregar producto: input con validación (vacío y duplicados).
+// 5. Eliminar producto: tap en la card.
+// 6. ChipList de marcas únicas con maxChips y maxTextLength.
 
-// Debounce y por qué 300ms — "Filtrar en cada pulsación desperdicia renders; con debounce solo recomputo cuando el usuario pausa. 300ms es el punto donde se siente instantáneo sin thrashing."
-
-// Cliente vs servidor — esto es lo más importante. Di: "Aquí filtro en cliente porque ya tengo los 100 productos en memoria — es correcto para un dataset acotado. Si fueran 50.000 productos, movería la búsqueda al servidor (/products/search?q=) con debounce + AbortController para cancelar peticiones en vuelo, y paginación." Tu useEffect ya usa AbortController, así que puedes conectar los dos conceptos.
-
-// Normalización — "Los usuarios buscan 'cafe' esperando encontrar 'Café'. La normalización Unicode NFD resuelve acentos sin dependencias."
-
-// Memoización — "El useMemo evita re-filtrar/re-ordenar cuando cambia algo no relacionado, como el estado del teclado."
-
-// Pendiente de agregar
-// ¿Quieres que implemente además la variante server-side (búsqueda contra el endpoint con AbortController y cancelación de race conditions)? Es el diferenciador real entre mid y senior, y te deja mostrar ambos enfoques y explicar el trade-off. ¿La agrego?
-
-// Qué se implementó
-// stats con un solo reduce (Ejercicio23.tsx:130) — acumula precio, rating y stock en una pasada O(n), en vez de recorrer la lista 3 veces con .map().reduce() separados.
-// Depende de visibleProducts, así que las métricas se recalculan con la búsqueda y el filtro en vivo.
-// Guarda contra división por cero (count ? ... : 0) para el caso "sin resultados".
-// Fila de 4 métricas debajo del searchbar con justifyContent: "space-around": Productos · Precio medio · Rating medio · Stock total.
-// Cómo defenderlo en la entrevista
-// Una pasada vs varias — "Podría hacer products.reduce para el precio, otro para rating, etc., pero eso son N recorridos. Un solo reduce con un acumulador de objeto lo resuelve en una pasada."
-// Promedio al final, no incremental — acumulas la suma total y divides una vez; evitas arrastrar error de redondeo por iteración.
-// Métricas sobre datos filtrados — "Las stats reflejan lo que el usuario ve. Si busca 'phone', el precio medio es el de los teléfonos, no del catálogo entero" — esto conecta la lógica de search con la de métricas y demuestra que piensas en producto, no solo en código.
-// Un detalle menor: quedó el resultCount ("N resultados") además de la métrica "Productos", que ahora son redundantes. ¿Quito el resultCount o lo dejo?
-
-// Debounce genérico y reutilizable: evita recomputar el filtro en cada
-// pulsación. En una entrevista, extraerlo a un hook demuestra que separas
-// lógica reutilizable de la UI.
-function useDebounce<T>(value: T, delay = 300): T {
+function useDebounce<T>(value: T, delay: number = 300): T {
   const [debounced, setDebounced] = useState(value);
 
   useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(id);
-  }, [value, delay]);
+    setTimeout(() => {
+      setDebounced(value);
+    }, delay);
+  }, []);
 
   return debounced;
 }
-
-// Normaliza para búsqueda insensible a mayúsculas y acentos ("Café" ~ "cafe").
-// const normalize = (text: string) =>
-//   text
-//     .toLowerCase()
-//     .normalize("NFD")
-//     .replace(/\p{Diacritic}/gu, "");
-
-// const normalize = (text: string) =>
-//   text
-//     .toLowerCase()
-//     .normalize("NFD")
-//     .replace(/\p{Diacritic}/gu, "");
 
 const normalize = (text: string) =>
   text
@@ -67,15 +40,6 @@ const normalize = (text: string) =>
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "");
 
-// ── ChipList: reto clásico de entrevista ──────────────────────────────
-// Puntos a verbalizar:
-// - Edge cases primero con guard clauses: sin chips o array vacío → null,
-//   sin anidar el happy path en condicionales.
-// - `undefined` ≠ `0`: maxChips undefined significa "sin límite";
-//   maxChips 0 es un límite explícito (no se muestra ningún chip, solo el label).
-// - slice() no muta el array original (a diferencia de splice).
-// - El label "N more items" es condicional: nunca renderizar "0 more items"
-//   ni el contenedor vacío.
 type Chip = { label: string };
 
 type ChipListProps = {
@@ -134,27 +98,28 @@ type Product = {
 type SortField = "price" | "rating" | "stock";
 type SortOrder = "asc" | "desc";
 
-export default function Ejercicio23() {
+export default function Ejercicio26() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [sortField, setSortField] = useState<SortField>("price");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  const [query, setQuery] = useState("");
+  const [newTitle, setNewTitle] = useState<string>("");
+  const [query, setQuery] = useState<string>("");
   const debouncedQuery = useDebounce(query, 300);
-  const [newTitle, setNewTitle] = useState("");
-  const [addError, setAddError] = useState<string | null>(null);
-  // Controles de demo del ChipList: permiten bajar a 0 para ver los edge
-  // cases (maxChips 0 → solo el label; maxTextLength 0 → solo "…").
+  //Chips
   const [maxChips, setMaxChips] = useState(4);
   const [maxTextLength, setMaxTextLength] = useState(8);
 
-  const SORT_OPTIONS: { label: string; field: SortField }[] = [
+  const SORT_OPTIONS: { label: string; field: string }[] = [
     { label: "Price", field: "price" },
-    { label: "Rating", field: "rating" },
     { label: "Stock", field: "stock" },
+    { label: "Rating", field: "rating" },
   ];
 
+  // TODO: useEffect con fetch + AbortController (mientras no exista, el
+  // spinner queda visible: setLoading(false) en el finally lo apaga).
   useEffect(() => {
     const controller = new AbortController();
 
@@ -162,64 +127,70 @@ export default function Ejercicio23() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("https://dummyjson.com/products?limit=100", {
-          signal: controller.signal,
-        });
-        const data = await res.json();
-        setProducts(data.products);
-      } catch (e: any) {
-        if (e.name !== "AbortError") {
-          setError(e.message ?? "Error al cargar productos");
-        }
+        const rawData = await fetch(
+          "https://dummyjson.com/products?limit=100",
+          {
+            signal: controller.signal,
+          },
+        );
+        console.log("rawData");
+        console.log(rawData);
+        const actualData = await rawData.json();
+        setProducts(actualData.products);
+      } catch (e) {
+        setError(e.message);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
+
     return () => controller.abort();
   }, []);
 
-  const handleAddProduct = () => {
-    const title = newTitle.trim();
-    if (!title) {
-      setAddError("El nombre no puede estar vacío");
-      return;
+  const handleSortOrderAndField = (field: SortField) => {
+    // To handle sort order and field, 1st,
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     }
-    const isDuplicate = products.some(
-      (p) => p.title.toLowerCase() === title.toLowerCase(),
-    );
-    if (isDuplicate) {
-      setAddError(`"${title}" ya existe`);
-      return;
-    }
+    setSortField(field);
+  };
 
-    // Id local: máximo actual + 1 para no chocar con los ids del endpoint.
-    const nextId = products.reduce((max, p) => Math.max(max, p.id), 0) + 1;
+  const handleAddProduct = () => {
+    const nextId =
+      products.reduce((max, prod) => Math.max(max, prod.id), 0) + 1;
+
     setProducts([
       ...products,
-      { id: nextId, title, price: 0, rating: 0, stock: 0 },
+      { id: nextId, title: newTitle.trim(), price: 0, rating: 0, stock: 0 },
     ]);
     setNewTitle("");
     setAddError(null);
   };
 
   const handleDeleteProduct = (id: number) => {
-    setProducts(products.filter((p) => p.id !== id));
+    setProducts(products.filter((prodItem) => prodItem.id !== id));
   };
 
-  const handleSort = (field: SortField) => {
-    // 2 scenarios
-    // When the field is the same as the previous one. You only change the asc or desc order
-    if (field === sortField) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-      setSortField(field);
-    }
-    // When the field is different as the previous one. You change the asc or desc order and you change field
-    else {
-      setSortField(field);
-    }
-  };
+  // TODO: reemplazar por el useMemo con filtro (búsqueda) + orden (sort).
+  // const visibleProducts = useMemo(() => {
+  //   //Normalize input
+  //   const textQuery = normalize(debouncedQuery.trim());
+
+  //   // Filter
+  //   const filtered = textQuery
+  //     ? products.filter((productItem) => productItem.title.includes(textQuery))
+  //     : products;
+
+  //   // Sort
+
+  //   return [...filtered].sort((a, b) => {
+  //     const diff = a[sortField] - b[sortField];
+
+  //     return sortOrder === "asc" ? diff : -diff;
+  //   });
+  // }, [products, debouncedQuery, sortField, sortOrder]);
 
   const visibleProducts = useMemo(() => {
     const q = normalize(debouncedQuery.trim());
@@ -247,61 +218,20 @@ export default function Ejercicio23() {
     return [...new Set(brands)].map((label) => ({ label }));
   }, [visibleProducts]);
 
-  // Métricas derivadas de lo que el usuario ve. Una sola pasada de reduce
-  // acumula todos los agregados: O(n) en vez de recorrer la lista una vez
-  // por métrica. El promedio se calcula al final para no arrastrar errores
-  // de redondeo intermedios.
-  const stats = useMemo(() => {
-    const totals = visibleProducts.reduce(
-      (acc, p) => {
-        acc.totalPrice += p.price;
-        acc.totalRating += p.rating;
-        acc.totalStock += p.stock;
-        // Semilla Infinity/-Infinity: Math.min/max convergen al extremo real
-        // en la primera iteración sin necesitar un caso especial para i === 0.
-        acc.minPrice = Math.min(acc.minPrice, p.price);
-        acc.maxPrice = Math.max(acc.maxPrice, p.price);
-        return acc;
-      },
-      {
-        totalPrice: 0,
-        totalRating: 0,
-        totalStock: 0,
-        minPrice: Infinity,
-        maxPrice: -Infinity,
-      },
-    );
-
-    const count = visibleProducts.length;
-
-    return {
-      count,
-      avgPrice: count ? totals.totalPrice / count : 0,
-      avgRating: count ? totals.totalRating / count : 0,
-      totalStock: totals.totalStock,
-      // Sin elementos, min/max quedan en ±Infinity: los normalizo a 0 para
-      // no imprimir "Infinity" en la UI cuando la búsqueda no tiene resultados.
-      minPrice: count ? totals.minPrice : 0,
-      maxPrice: count ? totals.maxPrice : 0,
-    };
-  }, [visibleProducts]);
-
-  const METRICS: { label: string; value: string }[] = [
-    { label: "Productos", value: String(stats.count) },
-    { label: "Precio medio", value: `$${stats.avgPrice.toFixed(2)}` },
-    { label: "Rating medio", value: `★ ${stats.avgRating.toFixed(2)}` },
-    {
-      label: "Rango precio",
-      value: `$${stats.minPrice.toFixed(0)}–$${stats.maxPrice.toFixed(0)}`,
-    },
-    { label: "Stock total", value: String(stats.totalStock) },
-  ];
+  // const brandChips = useMemo(() => {
+  //   const brands = visibleProducts
+  //     .map((p) => p.brand)
+  //     .filter((prodItem): prodItem is string => !!prodItem);
+  //   return [...new Set(brands)].map((label) => ({ label }));
+  // }, [visibleProducts]);
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.title}>Ejercicio 23</Text>
-        <Text style={styles.subtitle}>Descripción del ejercicio</Text>
+        <Text style={styles.title}>Ejercicio 26</Text>
+        <Text style={styles.subtitle}>
+          Práctica: fetch, búsqueda, orden, métricas y CRUD
+        </Text>
       </View>
 
       {error ? (
@@ -332,77 +262,16 @@ export default function Ejercicio23() {
               <Text style={styles.addBtnText}>Agregar</Text>
             </Pressable>
           </View>
-          {!!addError && <Text style={styles.addErrorText}>{addError}</Text>}
-          <View style={styles.searchRow}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar por nombre o marca…"
-              placeholderTextColor="#9AA0B4"
-              value={query}
-              onChangeText={setQuery}
-              autoCorrect={false}
-              autoCapitalize="none"
-              clearButtonMode="while-editing"
-              returnKeyType="search"
-            />
-            {!!query && (
-              <Pressable
-                onPress={() => setQuery("")}
-                style={styles.clearBtn}
-                hitSlop={8}
-              >
-                <Text style={styles.clearBtnText}>✕</Text>
-              </Pressable>
-            )}
-          </View>
-          <View style={styles.metricsRow}>
-            {METRICS.map(({ label, value }) => (
-              <View key={label} style={styles.metricCell}>
-                <Text style={styles.metricValue}>{value}</Text>
-                <Text style={styles.metricLabel}>{label}</Text>
-              </View>
-            ))}
-          </View>
-          <View style={styles.chipControlsRow}>
-            {(
-              [
-                {
-                  label: "Max chips",
-                  value: maxChips,
-                  set: setMaxChips,
-                },
-                {
-                  label: "Max texto",
-                  value: maxTextLength,
-                  set: setMaxTextLength,
-                },
-              ] as const
-            ).map(({ label, value, set }) => (
-              <View key={label} style={styles.stepper}>
-                <Text style={styles.sortLabel}>{label}:</Text>
-                <Pressable
-                  onPress={() => set((v) => Math.max(0, v - 1))}
-                  style={styles.stepperBtn}
-                  hitSlop={6}
-                >
-                  <Text style={styles.stepperBtnText}>−</Text>
-                </Pressable>
-                <Text style={styles.stepperValue}>{value}</Text>
-                <Pressable
-                  onPress={() => set((v) => v + 1)}
-                  style={styles.stepperBtn}
-                  hitSlop={6}
-                >
-                  <Text style={styles.stepperBtnText}>+</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
+          {/* TODO: fila para agregar producto (input + botón + error de validación) */}
+          {/* TODO: searchbar con botón de limpiar */}
+          {/* TODO: fila de métricas */}
+          {/* TODO: ChipList de marcas */}
           <ChipList
             chips={brandChips}
             maxChips={maxChips}
             maxTextLength={maxTextLength}
           />
+          {/* TODO: chips de ordenamiento */}
           <View style={styles.sortRow}>
             <Text style={styles.sortLabel}>Ordenar por:</Text>
             {SORT_OPTIONS.map(({ label, field }) => {
@@ -411,7 +280,7 @@ export default function Ejercicio23() {
               return (
                 <Pressable
                   key={field}
-                  onPress={() => handleSort(field)}
+                  onPress={() => handleSortOrderAndField(field)}
                   style={[styles.sortChip, active && styles.sortChipActive]}
                 >
                   <Text
@@ -429,8 +298,7 @@ export default function Ejercicio23() {
           </View>
           <Text style={styles.resultCount}>
             {visibleProducts.length} resultado
-            {visibleProducts.length === 1 ? "" : "s"} · toca un producto para
-            eliminarlo
+            {visibleProducts.length === 1 ? "" : "s"}
           </Text>
           <FlatList
             data={visibleProducts}
@@ -439,9 +307,7 @@ export default function Ejercicio23() {
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.emptyBox}>
-                <Text style={styles.emptyText}>
-                  Sin resultados para “{debouncedQuery.trim()}”
-                </Text>
+                <Text style={styles.emptyText}>Sin resultados</Text>
               </View>
             }
             renderItem={({ item }) => (
@@ -466,10 +332,6 @@ export default function Ejercicio23() {
               </Pressable>
             )}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
-            removeClippedSubviews
-            maxToRenderPerBatch={10}
-            initialNumToRender={15}
-            windowSize={5}
           />
         </View>
       )}
